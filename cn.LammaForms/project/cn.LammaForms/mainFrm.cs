@@ -1385,7 +1385,9 @@ namespace cn.LammaForms
                 Description = "选择 llama.cpp 程序目录（包含 llama-server.exe 和 llama-cli.exe）"
             };
 
-            if (dialog.ShowDialog() == DialogResult.OK)
+            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
+            var parentForm = (sender as Control)?.FindForm();
+            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
             {
                 tb_llamaPath.Text = dialog.SelectedPath;
                 ValidateLlamaPath(dialog.SelectedPath);
@@ -1403,7 +1405,9 @@ namespace cn.LammaForms
                 Description = "选择 GGUF 模型文件所在目录"
             };
 
-            if (dialog.ShowDialog() == DialogResult.OK)
+            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
+            var parentForm = (sender as Control)?.FindForm();
+            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
             {
                 tb_ggufModelsPath.Text = dialog.SelectedPath;
                 RefreshModelList();
@@ -1430,7 +1434,9 @@ namespace cn.LammaForms
                 Title = "选择多模态投影模型文件"
             };
 
-            if (dialog.ShowDialog() == DialogResult.OK)
+            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
+            var parentForm = (sender as Control)?.FindForm();
+            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
             {
                 tb_mmprojFile.Text = dialog.FileName;
                 SaveConfigDebounced();
@@ -1448,7 +1454,9 @@ namespace cn.LammaForms
                 Title = "选择 MTP 模型文件（assistant-MTP 或 mtp- 前缀的 GGUF）"
             };
 
-            if (dialog.ShowDialog() == DialogResult.OK)
+            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
+            var parentForm = (sender as Control)?.FindForm();
+            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
             {
                 tb_mtpFile.Text = dialog.FileName;
                 SaveConfigDebounced();
@@ -1827,7 +1835,9 @@ namespace cn.LammaForms
                 InitialDirectory = startupDir
             };
 
-            if (dialog.ShowDialog() == DialogResult.OK)
+            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
+            var parentForm = (sender as Control)?.FindForm();
+            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
             {
                 try
                 {
@@ -1902,7 +1912,9 @@ namespace cn.LammaForms
                 FileName = defaultFileName
             };
 
-            if (dialog.ShowDialog() == DialogResult.OK)
+            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
+            var parentForm = (sender as Control)?.FindForm();
+            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
             {
                 try
                 {
