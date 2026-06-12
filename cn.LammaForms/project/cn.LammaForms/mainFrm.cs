@@ -3083,6 +3083,9 @@ namespace cn.LammaForms
                 AppendRunningLog($"📊 线程范围：{startThread} - {endThread}，步长：{stepThread}");
                 AppendRunningLog("========================================================");
 
+                // 清空右上角 Token 文本框
+                tb_tokens.Clear();
+
                 var totalTests = ((endThread - startThread) / stepThread) + 1;
                 var currentTest = 0;
 
@@ -3116,6 +3119,12 @@ namespace cn.LammaForms
                     var resultLine = $"✅ 线程={threadCount}: Prompt={result.PromptSpeed:F1} t/s | Generation={result.GenerationSpeed:F1} t/s";
                     LogMessage(resultLine);
                     AppendRunningLog(resultLine);
+
+                    // 写入右上角 Token 文本框
+                    if (tb_tokens.TextLength > 0)
+                        tb_tokens.AppendText(Environment.NewLine);
+                    tb_tokens.AppendText($"线程={threadCount}: Prompt={result.PromptSpeed:F1} t/s | Gen={result.GenerationSpeed:F1} t/s");
+                    tb_tokens.ScrollToCaret();
 
                     // 等待显存释放
                     if (currentTest < totalTests && !_stopTest)
