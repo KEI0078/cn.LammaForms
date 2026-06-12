@@ -1636,7 +1636,9 @@ namespace cn.LammaForms
                 {
                     FileName = cliExe,
                     Arguments = args,
-                    UseShellExecute = true   // 弹出可见的 CMD 窗口
+                    UseShellExecute = false,                       // 改：避免 Win11 24H2 ShellExecuteEx 在 CJK 工作目录下返回 ERROR_CANCELLED
+                    CreateNoWindow = false,                        // 保留可见窗口
+                    WorkingDirectory = Path.GetDirectoryName(cliExe) // 工作目录改到 llama.exe 同目录，绕开中文路径
                 };
 
                 var process = Process.Start(psi);
@@ -2400,7 +2402,12 @@ namespace cn.LammaForms
                     LogMessage($"\n进度：[{currentTest}/{totalTests}] CTX={ctxName}");
 
                     // 组装完整命令：基础参数 + -c 上下文 + -m 模型 + -p 提示词
-                    var fullArgs = $"-m \"{modelPath}\" -c {contextSize} {baseArgs} -p \"hello\" -n 128";
+                    // 补上 MTP draft model 路径（与 chatTest/saveBatchCmd/web 三个位置保持一致）
+                    var mtpFile = tb_mtpFile.Text.Trim();
+                    var mtpArg = !string.IsNullOrEmpty(mtpFile) && File.Exists(mtpFile)
+                        ? $" --model-draft \"{mtpFile}\""
+                        : "";
+                    var fullArgs = $"-m \"{modelPath}\" -c {contextSize}{mtpArg} {baseArgs} -p \"hello\" -n 128";
 
                     var result = await RunSingleSpeedTestAsync(cliExe, fullArgs, contextSize, llamaPath);
                     results.Add(result);
@@ -2587,32 +2594,46 @@ namespace cn.LammaForms
         {
             var trimmed = line.Trim();
 
-            // 检测速度信息
-            if (trimmed.Contains("t/s"))
+            // 检测 b9601+ 结构化输出
+            // 匹配 "prompt eval time =     8734.21 ms /   971 tokens"
+            var promptMatch = System.Text.RegularExpressions.Regex.Match(
+                trimmed,
+                @"prompt eval time\s*=\s*([\d.]+)\s*ms\s*/\s*(\d+)\s*tokens",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (promptMatch.Success)
             {
-                var promptMatch = System.Text.RegularExpressions.Regex.Match(trimmed, @"Prompt:?\s*([\d.]+)\s*t/s");
-                var genMatch = System.Text.RegularExpressions.Regex.Match(trimmed, @"Generation:?\s*([\d.]+)\s*t/s");
-                if (promptMatch.Success && double.TryParse(promptMatch.Groups[1].Value, out var p))
-                    lastPromptSpeed = p;
-                if (genMatch.Success && double.TryParse(genMatch.Groups[1].Value, out var g))
-                    lastGenSpeed = g;
+                if (double.TryParse(promptMatch.Groups[1].Value, out var ms) &&
+                    int.TryParse(promptMatch.Groups[2].Value, out var tokens) &&
+                    ms > 0)
+                {
+                    lastPromptSpeed = tokens / (ms / 1000.0);
+                }
             }
 
-            // 检测最终结果标志
-            if (!testCompleted)
+            // 匹配 "       eval time =    1075.76 ms /    19 tokens"（注意 "eval" 前有空格）
+            var genMatch = System.Text.RegularExpressions.Regex.Match(
+                trimmed,
+                @"\beval time\s*=\s*([\d.]+)\s*ms\s*/\s*(\d+)\s*tokens",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (genMatch.Success)
             {
-                var finalMatch = System.Text.RegularExpressions.Regex.Match(trimmed,
-                    @"\[?\s*Prompt:\s*[\d.]+\s*t/s\s*\|\s*Generation:\s*[\d.]+\s*t/s\s*\]?",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                if (finalMatch.Success)
+                if (double.TryParse(genMatch.Groups[1].Value, out var ms) &&
+                    int.TryParse(genMatch.Groups[2].Value, out var tokens) &&
+                    ms > 0)
                 {
-                    testCompleted = true;
-                    try
-                    {
-                        if (!process.HasExited) process.Kill();
-                    }
-                    catch { }
+                    lastGenSpeed = tokens / (ms / 1000.0);
                 }
+            }
+
+            // 检测最终结果标志（两个 speed 都 > 0 时视为完成）
+            if (!testCompleted && lastPromptSpeed > 0 && lastGenSpeed > 0)
+            {
+                testCompleted = true;
+                try
+                {
+                    if (!process.HasExited) process.Kill();
+                }
+                catch { }
             }
         }
 
@@ -2623,25 +2644,37 @@ namespace cn.LammaForms
         {
             if (string.IsNullOrEmpty(result.RawOutput)) return;
 
-            var lines = result.RawOutput.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = result.RawOutput.Split(new char[] { '\n', (char)13 }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
             {
                 var trimmed = line.Trim();
 
-                if (trimmed.Contains("prompt", StringComparison.OrdinalIgnoreCase))
+                var promptMatch = System.Text.RegularExpressions.Regex.Match(
+                    trimmed,
+                    @"prompt eval time\s*=\s*([\d.]+)\s*ms\s*/\s*(\d+)\s*tokens",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (promptMatch.Success && result.PromptSpeed == 0)
                 {
-                    var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"([\d.]+)\s*t/s",
-                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    if (match.Success && result.PromptSpeed == 0 && double.TryParse(match.Groups[1].Value, out var speed))
-                        result.PromptSpeed = speed;
+                    if (double.TryParse(promptMatch.Groups[1].Value, out var ms) &&
+                        int.TryParse(promptMatch.Groups[2].Value, out var tokens) &&
+                        ms > 0)
+                    {
+                        result.PromptSpeed = tokens / (ms / 1000.0);
+                    }
                 }
 
-                if (trimmed.Contains("eval", StringComparison.OrdinalIgnoreCase) || trimmed.Contains("generation", StringComparison.OrdinalIgnoreCase))
+                var genMatch = System.Text.RegularExpressions.Regex.Match(
+                    trimmed,
+                    @"\beval time\s*=\s*([\d.]+)\s*ms\s*/\s*(\d+)\s*tokens",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (genMatch.Success && result.GenerationSpeed == 0)
                 {
-                    var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"([\d.]+)\s*t/s",
-                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    if (match.Success && result.GenerationSpeed == 0 && double.TryParse(match.Groups[1].Value, out var speed))
-                        result.GenerationSpeed = speed;
+                    if (double.TryParse(genMatch.Groups[1].Value, out var ms) &&
+                        int.TryParse(genMatch.Groups[2].Value, out var tokens) &&
+                        ms > 0)
+                    {
+                        result.GenerationSpeed = tokens / (ms / 1000.0);
+                    }
                 }
             }
         }
