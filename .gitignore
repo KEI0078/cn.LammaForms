@@ -1,6 +1,8 @@
-# 编译输出
+# 编译输出（递归匹配所有子目录的 bin/obj）
 /bin/
 /obj/
+**/bin/
+**/obj/
 *.exe
 *.dll
 *.pdb
