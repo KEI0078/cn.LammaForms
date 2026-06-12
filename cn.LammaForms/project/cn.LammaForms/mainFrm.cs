@@ -356,6 +356,15 @@ namespace cn.LammaForms
             {
                 cbeCtrl.Enabled = enabled;
             }
+
+            // 启用/禁用对应的值控件（Button，如 FilePath 的"浏览"按钮 / Enum 多选的下拉按钮）
+            // 修复 v2.4.0 引入的回归 bug：OnParamEnabledChanged 早期只同步 NumericUpDown/TextBox/ComboBox，
+            // 漏掉了 Button，导致 FilePath 参数的"浏览"按钮在参数启用后仍然是灰色无法点击。
+            var btnName = $"btn_{paramName.TrimStart('-').Replace("-", "_")}";
+            if (gp_model_options.Controls.Find(btnName, true).FirstOrDefault() is Control btnCtrl)
+            {
+                btnCtrl.Enabled = enabled;
+            }
         }
 
         /// <summary>
