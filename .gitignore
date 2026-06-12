@@ -34,6 +34,9 @@ screenshot-main.png
 /源码-作者源文件/
 /源码-个人修改/
 
+# 旧版 changelog（已归档到 changelog/ 目录）
+CHANGELOG-v2.4.1.md
+
 # IDE
 .vs/
 *.suo
