@@ -1,0 +1,348 @@
+{
+  "name": "llama.cpp 标准参数",
+  "version": "1.0",
+  "description": "llama.cpp 标准启动参数配置，支持动态加载到UI",
+  "categories": [
+    {
+      "name": "核心基础参数",
+      "icon": "🔧",
+      "enabled": true,
+      "params": [
+        {
+          "name": "CPU线程数",
+          "shortName": "threads",
+          "flag": "-t",
+          "type": "numeric",
+          "default": 8,
+          "min": 1,
+          "max": 128,
+          "description": "推理使用的CPU线程数",
+          "tooltip": "默认自动检测CPU核心数"
+        },
+        {
+          "name": "GGUF模型路径",
+          "shortName": "model",
+          "flag": "-m",
+          "type": "file",
+          "required": true,
+          "description": "GGUF格式模型文件路径",
+          "tooltip": "必填参数，指定要加载的模型文件"
+        },
+        {
+          "name": "初始提示",
+          "shortName": "prompt",
+          "flag": "-p",
+          "type": "text",
+          "default": "",
+          "description": "设置初始提示文本",
+          "tooltip": "用于测试的初始输入文本"
+        },
+        {
+          "name": "批处理大小",
+          "shortName": "batch-size",
+          "flag": "-b",
+          "type": "numeric",
+          "default": 512,
+          "min": 1,
+          "max": 4096,
+          "description": "推理批次大小，控制每次处理的token数量",
+          "tooltip": "较大批次提高吞吐量，但增加内存占用（建议512-2048）"
+        },
+        {
+          "name": "评估批次大小",
+          "shortName": "batch-size-eval",
+          "flag": "-ub",
+          "type": "numeric",
+          "default": 512,
+          "min": 1,
+          "max": 4096,
+          "description": "评估/编码阶段的批次大小，用于Prompt预处理阶段的token编码",
+          "tooltip": "主要影响Prompt预处理速度，建议256-512"
+        },
+        {
+          "name": "内存映射",
+          "shortName": "mmap",
+          "flag": "--mmap",
+          "type": "checkbox",
+          "default": true,
+          "description": "使用内存映射加载模型，减少内存占用",
+          "tooltip": "启用后可减少内存占用"
+        },
+        {
+          "name": "并行请求数",
+          "shortName": "parallel",
+          "flag": "--parallel",
+          "type": "numeric",
+          "default": 1,
+          "min": 1,
+          "max": 64,
+          "description": "并行处理的请求数量（服务端并发槽位数）",
+          "tooltip": "多客户端场景下可适当增大，单测速场景保持为1"
+        },
+        {
+          "name": "连续批处理",
+          "shortName": "cont-batching",
+          "flag": "--cont-batching",
+          "type": "checkbox",
+          "default": false,
+          "description": "启用连续批处理，允许在生成过程中同时处理多个请求",
+          "tooltip": "并发场景下大幅提升吞吐量，单用户场景意义不大"
+        }
+      ]
+    },
+    {
+      "name": "GPU加速参数",
+      "icon": "🎮",
+      "enabled": true,
+      "params": [
+        {
+          "name": "Flash Attention",
+          "shortName": "flash-attn",
+          "flag": "--flash-attn",
+          "type": "checkbox",
+          "default": false,
+          "description": "启用FlashAttention v2优化，大幅提升注意力机制计算效率，降低显存占用",
+          "tooltip": "仅支持NVIDIA Ampere及以上架构（RTX 30系/40系），TurboQuant 强烈建议开启"
+        },
+        {
+          "name": "GPU层数",
+          "shortName": "ngl",
+          "flag": "-ngl",
+          "type": "numeric",
+          "default": 0,
+          "min": 0,
+          "max": 999,
+          "description": "指定卸载到GPU的模型层数",
+          "tooltip": "设置为999可尝试卸载所有层",
+          "warning": "需要在编译时指定GPU后端（CUDA/Metal）"
+        },
+        {
+          "name": "主GPU",
+          "shortName": "main-gpu",
+          "flag": "--main-gpu",
+          "type": "numeric",
+          "default": 0,
+          "min": 0,
+          "max": 16,
+          "description": "指定主要使用的GPU设备编号",
+          "tooltip": "多GPU环境下有效"
+        },
+        {
+          "name": "张量拆分",
+          "shortName": "tensor-split",
+          "flag": "--tensor-split",
+          "type": "text",
+          "default": "",
+          "description": "多GPU之间的张量拆分比例",
+          "tooltip": "例如 0.6,0.4 表示60%在GPU0，40%在GPU1"
+        }
+      ]
+    },
+    {
+      "name": "上下文窗口参数",
+      "icon": "📏",
+      "enabled": true,
+      "params": [
+        {
+          "name": "上下文大小",
+          "shortName": "ctx-size",
+          "flag": "-c",
+          "type": "context-size",
+          "default": 8192,
+          "description": "上下文窗口大小（token数）",
+          "tooltip": "建议不超过模型支持的最大值",
+          "contextSizes": [
+            { "label": "4K", "value": 4096 },
+            { "label": "8K", "value": 8192 },
+            { "label": "16K", "value": 16384 },
+            { "label": "32K", "value": 32768 },
+            { "label": "64K", "value": 65536 },
+            { "label": "96K", "value": 98304 },
+            { "label": "128K", "value": 131072 },
+            { "label": "160K", "value": 163840 },
+            { "label": "192K", "value": 196608 },
+            { "label": "224K", "value": 229376 },
+            { "label": "256K", "value": 262144 },
+            { "label": "288K", "value": 294912 },
+            { "label": "320K", "value": 327680 },
+            { "label": "352K", "value": 360448 },
+            { "label": "384K", "value": 393216 },
+            { "label": "416K", "value": 425984 },
+            { "label": "448K", "value": 458752 },
+            { "label": "480K", "value": 491520 },
+            { "label": "512K", "value": 524288 },
+            { "label": "544K", "value": 557056 },
+            { "label": "576K", "value": 589824 },
+            { "label": "608K", "value": 622592 },
+            { "label": "640K", "value": 655360 },
+            { "label": "672K", "value": 688128 },
+            { "label": "704K", "value": 720896 },
+            { "label": "736K", "value": 753664 },
+            { "label": "768K", "value": 786432 },
+            { "label": "800K", "value": 819200 },
+            { "label": "832K", "value": 851968 },
+            { "label": "864K", "value": 884736 },
+            { "label": "896K", "value": 917504 },
+            { "label": "928K", "value": 950272 },
+            { "label": "960K", "value": 983040 },
+            { "label": "1M", "value": 1048576 },
+            { "label": "2M", "value": 2097152 },
+            { "label": "3M", "value": 3145728 },
+            { "label": "4M", "value": 4194304 },
+            { "label": "5M", "value": 5242880 }
+          ]
+        },
+        {
+          "name": "保留Token数",
+          "shortName": "keep",
+          "flag": "-k",
+          "type": "numeric",
+          "default": 0,
+          "min": 0,
+          "max": 100000,
+          "description": "保留的初始上下文token数，用于多轮对话",
+          "tooltip": "0表示全部保留"
+        }
+      ]
+    },
+    {
+      "name": "文本生成参数",
+      "icon": "✍️",
+      "enabled": true,
+      "params": [
+        {
+          "name": "温度",
+          "shortName": "temp",
+          "flag": "--temp",
+          "type": "slider",
+          "default": 0.8,
+          "min": 0.0,
+          "max": 2.0,
+          "step": 0.01,
+          "description": "控制输出随机性，值越高越有创意",
+          "tooltip": "建议取值 0.1-1.2"
+        },
+        {
+          "name": "Top-K",
+          "shortName": "top-k",
+          "flag": "--top-k",
+          "type": "numeric",
+          "default": 40,
+          "min": 0,
+          "max": 100,
+          "description": "只考虑概率最高的N个token",
+          "tooltip": "设置为0禁用"
+        },
+        {
+          "name": "Top-P",
+          "shortName": "top-p",
+          "flag": "--top-p",
+          "type": "slider",
+          "default": 0.95,
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01,
+          "description": "核采样，累积概率超过N即停止",
+          "tooltip": "设置为1.0禁用"
+        },
+        {
+          "name": "重复惩罚",
+          "shortName": "repeat-penalty",
+          "flag": "--repeat-penalty",
+          "type": "slider",
+          "default": 1.1,
+          "min": 0.0,
+          "max": 2.0,
+          "step": 0.01,
+          "description": "重复惩罚系数，值越高越不容易重复",
+          "tooltip": "默认1.1"
+        },
+        {
+          "name": "最大生成Token",
+          "shortName": "n-predict",
+          "flag": "-n",
+          "type": "numeric",
+          "default": 32768,
+          "min": 1,
+          "max": 100000,
+          "description": "设置最大生成token数上限",
+          "tooltip": "测速时建议512-2048；生产环境建议16384-32768，需确保模型支持"
+        },
+        {
+          "name": "停止序列",
+          "shortName": "stop",
+          "flag": "--stop",
+          "type": "text",
+          "default": "",
+          "description": "设置停止序列，遇到即停止生成",
+          "tooltip": "多个序列用逗号分隔"
+        },
+        {
+          "name": "存在惩罚",
+          "shortName": "presence-penalty",
+          "flag": "--presence-penalty",
+          "type": "slider",
+          "default": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01,
+          "description": "存在惩罚系数，降低已出现过的token的生成概率",
+          "tooltip": "0.0表示禁用；设置0.1-0.5可减少话题重复"
+        },
+        {
+          "name": "Jinja模板",
+          "shortName": "jinja",
+          "flag": "--jinja",
+          "type": "checkbox",
+          "default": false,
+          "description": "启用Jinja2模板支持，允许使用条件渲染、变量替换等模板语法构建Prompt",
+          "tooltip": "适合复杂对话场景，需模型支持chat template"
+        },
+        {
+          "name": "推理格式",
+          "shortName": "reasoning-format",
+          "flag": "--reasoning-format",
+          "type": "combo",
+          "default": "auto",
+          "options": ["auto", "none", "deepseek"],
+          "description": "推理格式优化模式，模型自动识别推理任务并调整输出格式",
+          "tooltip": "auto=自动检测；deepseek=使用DeepSeek格式；none=禁用"
+        }
+      ]
+    },
+    {
+      "name": "资源优化参数",
+      "icon": "⚙️",
+      "enabled": true,
+      "params": [
+        {
+          "name": "低显存模式",
+          "shortName": "low-vram",
+          "flag": "--low-vram",
+          "type": "checkbox",
+          "default": false,
+          "description": "启用低VRAM模式，减少GPU内存占用",
+          "tooltip": "GPU显存不足时启用"
+        },
+        {
+          "name": "禁用内存映射",
+          "shortName": "no-mmap",
+          "flag": "--no-mmap",
+          "type": "checkbox",
+          "default": false,
+          "description": "禁用内存映射，完全加载到内存",
+          "tooltip": "内存充足时可能提升性能"
+        },
+        {
+          "name": "锁定内存",
+          "shortName": "mlock",
+          "flag": "--mlock",
+          "type": "checkbox",
+          "default": false,
+          "description": "将模型锁定在内存中，避免换页",
+          "tooltip": "服务器环境推荐启用"
+        }
+      ]
+    }
+  ]
+}

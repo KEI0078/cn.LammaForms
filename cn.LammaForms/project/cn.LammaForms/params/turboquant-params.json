@@ -1,0 +1,172 @@
+{
+  "name": "TurboQuant 独有参数",
+  "version": "1.7.0",
+  "description": "TurboQuant KV Cache Compression 独有启动参数配置",
+  "compatibility": {
+    "minLlamaCppVersion": "v1.5.0",
+    "requiredBackends": ["CUDA"],
+    "supportedModels": ["Qwen3-14B", "Qwen3.5-35B", "Gemma-4", "GLM-4.7", "DeepSeek"]
+  },
+  "categories": [
+    {
+      "name": "推理预算参数",
+      "icon": "🧠",
+      "enabled": true,
+      "params": [
+        {
+          "name": "推理预算",
+          "shortName": "reasoning-budget",
+          "flag": "--reasoning-budget",
+          "type": "slider",
+          "default": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "description": "推理预算比例（0~1）",
+          "tooltip": "0表示关闭，0.5表示50%预算"
+        },
+        {
+          "name": "推理格式",
+          "shortName": "reasoning-format",
+          "flag": "--reasoning-format",
+          "type": "combo",
+          "default": "auto",
+          "options": [
+            { "label": "自动", "value": "auto" },
+            { "label": "开启", "value": "on" },
+            { "label": "关闭", "value": "off" }
+          ],
+          "description": "推理格式设置",
+          "tooltip": "auto表示根据模型自动检测"
+        }
+      ]
+    },
+    {
+      "name": "KV缓存量化",
+      "icon": "💾",
+      "enabled": true,
+      "params": [
+        {
+          "name": "K缓存类型",
+          "shortName": "cache-type-k",
+          "flag": "--cache-type-k",
+          "type": "combo",
+          "default": "",
+          "options": [
+            { "label": "默认(f16)", "value": "f16" },
+            { "label": "Q8_0", "value": "q8_0" },
+            { "label": "Q4_0", "value": "q4_0" },
+            { "label": "TBQ3 (3-bit)", "value": "tbq3" },
+            { "label": "TBQ4 (4-bit)", "value": "tbq4" },
+            { "label": "TBQP3 (3-bit+QJL)", "value": "tbqp3" },
+            { "label": "TBQP4 (4-bit+QJL)", "value": "tbqp4" },
+            { "label": "AMX3_1 (6.75bpw)", "value": "amx3" },
+            { "label": "TBQX3 (3.625bpw)", "value": "tbqx3" }
+          ],
+          "description": "Key缓存量化类型",
+          "tooltip": "TBQ/TBQP 为 TurboQuant 量化类型，AMX3 为混合量化",
+          "warning": "不同 head_dim 自动映射到不同子类型",
+          "autoMapping": {
+            "headDim64": "q8_0",
+            "headDim128": "tbq3_1",
+            "headDim256": "tbq3_0",
+            "headDim512": "tbq3_0"
+          }
+        },
+        {
+          "name": "V缓存类型",
+          "shortName": "cache-type-v",
+          "flag": "--cache-type-v",
+          "type": "combo",
+          "default": "",
+          "options": [
+            { "label": "默认(f16)", "value": "f16" },
+            { "label": "Q8_0", "value": "q8_0" },
+            { "label": "Q4_0", "value": "q4_0" },
+            { "label": "TBQ3 (3-bit)", "value": "tbq3" },
+            { "label": "TBQ4 (4-bit)", "value": "tbq4" }
+          ],
+          "description": "Value缓存量化类型",
+          "tooltip": "不建议使用 TBQP 类型（仅适用于 K 缓存）"
+        }
+      ]
+    },
+    {
+      "name": "TriAttention 参数 (v1.7.0+)",
+      "icon": "🔺",
+      "enabled": true,
+      "params": [
+        {
+          "name": "TRIA校准文件",
+          "shortName": "triattention",
+          "flag": "--triattention",
+          "type": "file",
+          "default": "",
+          "description": "TRIA v2 校准文件路径",
+          "tooltip": "从 calibrate_ref.py 生成",
+          "requiredFor": ["amx3"]
+        },
+        {
+          "name": "TriBudget",
+          "shortName": "tri-budget",
+          "flag": "--tri-budget",
+          "type": "numeric",
+          "default": 0,
+          "min": 0,
+          "max": 10000,
+          "description": "每层保留的 Top-B slots 数量",
+          "tooltip": "0表示关闭TriAttention",
+          "recommended": 128
+        },
+        {
+          "name": "触发间隔",
+          "shortName": "tri-interval",
+          "flag": "--tri-interval",
+          "type": "numeric",
+          "default": 128,
+          "min": 1,
+          "max": 1000,
+          "description": "触发TriAttention的解码token间隔",
+          "tooltip": "paper中的β参数"
+        },
+        {
+          "name": "保留首Token",
+          "shortName": "tri-keep-first",
+          "flag": "--tri-keep-first",
+          "type": "numeric",
+          "default": 4,
+          "min": 0,
+          "max": 100,
+          "description": "注意力sink保护，始终保留的前N个slots",
+          "tooltip": "4覆盖chat template，32覆盖完整prompt header",
+          "recommended": 32
+        }
+      ]
+    },
+    {
+      "name": "注意力旋转参数",
+      "icon": "🔄",
+      "enabled": true,
+      "params": [
+        {
+          "name": "注意力旋转K",
+          "shortName": "attn-rot-k",
+          "flag": "--attn-rot-k",
+          "type": "checkbox",
+          "default": true,
+          "description": "启用Key注意力旋转",
+          "tooltip": "TurboQuant v1.7.0+ 自动处理"
+        },
+        {
+          "name": "注意力旋转V",
+          "shortName": "attn-rot-v",
+          "flag": "--attn-rot-v",
+          "type": "checkbox",
+          "default": false,
+          "description": "启用Value注意力旋转",
+          "tooltip": "通常不需要启用"
+        }
+      ]
+    }
+  ]
+}

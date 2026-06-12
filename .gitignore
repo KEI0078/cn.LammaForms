@@ -1,0 +1,29 @@
+# 编译输出
+/bin/
+/obj/
+*.exe
+*.dll
+*.pdb
+
+# 本地运行时配置（每个设备不同）
+config.json
+system.json
+*.user
+
+# 编译产物（输出到项目根目录）
+/cn.LammaForms.exe
+/cn.LammaForms.dll
+/cn.LammaForms.pdb
+/cn.LammaForms.deps.json
+/cn.LammaForms.runtimeconfig.json
+
+# 版本目录（编译产出，不需要版本管理）
+/cn.Lamma-windows*/
+
+# 启动管理工具目录（编译产物备份）
+/../启动管理工具cn.Lamma-windows*/
+
+# IDE
+.vs/
+*.suo
+*.sln.docstates
