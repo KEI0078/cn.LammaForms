@@ -1,6 +1,6 @@
 # v2.4.1 — 2026-06-12
 
-修复 v2.4.0 三个已知 bug，全部由 mainFrm.cs 一处文件完成。
+修复 v2.4.0 三个已知 bug + 项目结构整理（编译产物移入 `build-output/`），全部由 mainFrm.cs + csproj + .gitignore 三处文件完成。
 
 ## 修复清单
 
@@ -38,11 +38,39 @@
 cd "E:/llama.cpp/cn.LammaForms/cn.LammaForms/project"
 "C:/Program Files/dotnet/dotnet.exe" build cn.LammaForms.sln -c Release
 # 0 警告 0 错误
+# 编译产物输出到 `E:\llama.cpp\cn.LammaForms\cn.LammaForms\build-output\`（v2.4.1+ 起）
 ```
 
 ## 部署
 
-- 编译产物已更新到 `cn.Lamma-windows v2.4/`
+- 编译产物统一从 `cn.LammaForms/build-output/` 复制（v2.4.1+ 起，路径变更）
+- 已更新到 `cn.Lamma-windows v2.4/` 目录
+- 已更新到 `启动管理工具cn.Lamma-windows v2.4/` 目录（用户双击用）
 - 旧版备份：`cn.Lamma-windows v2.4/_backup_v2.4.0/`
-- 用户手动复制到 `启动管理工具cn.Lamma-windows v2.4/` 即可使用
 - 启动管理工具目录的 `system.json` / `config.json` 不需删除，参数面板不会受影响
+
+## 项目结构整理（顺带做的）
+
+- 新建 `cn.LammaForms/build-output/` 目录收纳编译产物
+- 5 个散落文件（`cn.LammaForms.exe` 等）从源码根目录移到 `build-output/`
+- `csproj` 的 `OutputPath` 从 `..\..\` 改为 `..\..\build-output\`，以后编译自动落进 `build-output/`，源码根不再有散落文件
+- `.gitignore` 同步改为 `/build-output/` 整体忽略 + 补 `*.deps.json` / `*.runtimeconfig.json` 全局兜底
+- `README.md` 编译章节补"产物输出位置"说明
+
+整理前 vs 整理后：
+
+```
+整理前                                  整理后
+E:\llama.cpp\cn.LammaForms\            E:\llama.cpp\cn.LammaForms\
+└── cn.LammaForms\                      └── cn.LammaForms\
+    ├── cn.LammaForms.exe  ❌散落           ├── build-output\          ← 新建收纳
+    ├── cn.LammaForms.dll  ❌散落           │   ├── cn.LammaForms.exe
+    ├── cn.LammaForms.pdb  ❌散落           │   ├── cn.LammaForms.dll
+    ├── cn.LammaForms.deps.json ❌         │   ├── cn.LammaForms.pdb
+    ├── cn.LammaForms.runtimeconfig.json ❌│   ├── cn.LammaForms.deps.json
+    ├── cn.Lamma-windows v2.4\             │   └── cn.LammaForms.runtimeconfig.json
+    ├── cn.Lamma-windows v2.4.2\           ├── cn.Lamma-windows v2.4\
+    ├── project\                          ├── cn.Lamma-windows v2.4.2\
+    └── source-backup-v2.4.0-…\           ├── project\
+                                          └── source-backup-v2.4.0-…\
+```

@@ -61,11 +61,11 @@ cd project
 dotnet build cn.LammaForms.sln -c Release
 ```
 
-编译产物输出到 `cn.LammaForms\` 目录。
+编译产物输出到 `cn.LammaForms\build-output\` 目录（v2.4.1+ 起，csproj 已配置 OutputPath=..\..\build-output\）。
 
 ### 部署
 
-1. 编译后将 5 个文件（`.exe` `.dll` `.pdb` `.deps.json` `.runtimeconfig.json`）复制到版本目录
+1. 从 `cn.LammaForms\build-output\` 复制 5 个文件（`.exe` `.dll` `.pdb` `.deps.json` `.runtimeconfig.json`）到版本目录
 2. 再复制到启动管理工具目录
 3. 首次运行前可删除旧 `system.json` 让程序重新生成
 
