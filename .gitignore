@@ -30,6 +30,10 @@ system.json
 # 封面截图（替换后的新版，避免旧版冲突）
 screenshot-main.png
 
+# 个人备份与原作者源码（不上传 GitHub）
+/源码-作者源文件/
+/源码-个人修改/
+
 # IDE
 .vs/
 *.suo
