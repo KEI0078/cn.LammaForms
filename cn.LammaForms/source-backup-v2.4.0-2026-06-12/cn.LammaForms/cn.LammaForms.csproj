@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>token.ico</ApplicationIcon>
+    <OutputPath>..\..\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="params\**" />
+    <EmbeddedResource Remove="params\**" />
+    <None Remove="params\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="token.ico" />
+  </ItemGroup>
+</Project>

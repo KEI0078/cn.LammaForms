@@ -1704,7 +1704,7 @@
             Controls.Add(splitContainer_main);
             Name = "mainFrm";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "llama.cpp本地启动器 / 原作者B站@贤小二 / 修改者github@KEI0078";
+            Text = "llama.cpp本地启动器（多参数）、启动参数管理工具、最优启动参数测试、多尺寸上下文批量测速工具、CPU多线程批量测速工具   贤小二 @2026.05.05";
             FormClosing += new FormClosingEventHandler(mainFrm_FormClosing);
             Resize += new EventHandler(mainFrm_Resize);
             panel_left.ResumeLayout(false);

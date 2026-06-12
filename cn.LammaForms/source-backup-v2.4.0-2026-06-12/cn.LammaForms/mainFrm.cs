@@ -356,15 +356,6 @@ namespace cn.LammaForms
             {
                 cbeCtrl.Enabled = enabled;
             }
-
-            // 启用/禁用对应的值控件（Button，如 FilePath 的"浏览"按钮 / Enum 多选的下拉按钮）
-            // 修复 v2.4.0 引入的回归 bug：OnParamEnabledChanged 早期只同步 NumericUpDown/TextBox/ComboBox，
-            // 漏掉了 Button，导致 FilePath 参数的"浏览"按钮在参数启用后仍然是灰色无法点击。
-            var btnName = $"btn_{paramName.TrimStart('-').Replace("-", "_")}";
-            if (gp_model_options.Controls.Find(btnName, true).FirstOrDefault() is Control btnCtrl)
-            {
-                btnCtrl.Enabled = enabled;
-            }
         }
 
         /// <summary>
@@ -1394,9 +1385,7 @@ namespace cn.LammaForms
                 Description = "选择 llama.cpp 程序目录（包含 llama-server.exe 和 llama-cli.exe）"
             };
 
-            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
-            var parentForm = (sender as Control)?.FindForm();
-            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
+            if (dialog.ShowDialog() == DialogResult.OK)
             {
                 tb_llamaPath.Text = dialog.SelectedPath;
                 ValidateLlamaPath(dialog.SelectedPath);
@@ -1414,9 +1403,7 @@ namespace cn.LammaForms
                 Description = "选择 GGUF 模型文件所在目录"
             };
 
-            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
-            var parentForm = (sender as Control)?.FindForm();
-            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
+            if (dialog.ShowDialog() == DialogResult.OK)
             {
                 tb_ggufModelsPath.Text = dialog.SelectedPath;
                 RefreshModelList();
@@ -1443,9 +1430,7 @@ namespace cn.LammaForms
                 Title = "选择多模态投影模型文件"
             };
 
-            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
-            var parentForm = (sender as Control)?.FindForm();
-            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
+            if (dialog.ShowDialog() == DialogResult.OK)
             {
                 tb_mmprojFile.Text = dialog.FileName;
                 SaveConfigDebounced();
@@ -1463,9 +1448,7 @@ namespace cn.LammaForms
                 Title = "选择 MTP 模型文件（assistant-MTP 或 mtp- 前缀的 GGUF）"
             };
 
-            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
-            var parentForm = (sender as Control)?.FindForm();
-            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
+            if (dialog.ShowDialog() == DialogResult.OK)
             {
                 tb_mtpFile.Text = dialog.FileName;
                 SaveConfigDebounced();
@@ -1653,9 +1636,7 @@ namespace cn.LammaForms
                 {
                     FileName = cliExe,
                     Arguments = args,
-                    UseShellExecute = false,                       // 改：避免 Win11 24H2 ShellExecuteEx 在 CJK 工作目录下返回 ERROR_CANCELLED
-                    CreateNoWindow = false,                        // 保留可见窗口
-                    WorkingDirectory = Path.GetDirectoryName(cliExe) // 工作目录改到 llama.exe 同目录，绕开中文路径
+                    UseShellExecute = true   // 弹出可见的 CMD 窗口
                 };
 
                 var process = Process.Start(psi);
@@ -1844,9 +1825,7 @@ namespace cn.LammaForms
                 InitialDirectory = startupDir
             };
 
-            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
-            var parentForm = (sender as Control)?.FindForm();
-            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
+            if (dialog.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
@@ -1921,9 +1900,7 @@ namespace cn.LammaForms
                 FileName = defaultFileName
             };
 
-            // 传父窗口句柄，避免在嵌套容器里 dialog 弹到主窗体后面或弹不出
-            var parentForm = (sender as Control)?.FindForm();
-            if (dialog.ShowDialog(parentForm) == DialogResult.OK)
+            if (dialog.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
@@ -2405,9 +2382,6 @@ namespace cn.LammaForms
                 AppendRunningLog($"📊 测试列表：{string.Join(", ", selectedContexts.OrderBy(x => x).Select(x => GetContextName(x)))}");
                 AppendRunningLog("========================================================");
 
-                // 清空右上角 Token 文本框旧记录
-                tb_tokens.Clear();
-
                 var totalTests = selectedContexts.Count;
                 var currentTest = 0;
 
@@ -2426,34 +2400,13 @@ namespace cn.LammaForms
                     LogMessage($"\n进度：[{currentTest}/{totalTests}] CTX={ctxName}");
 
                     // 组装完整命令：基础参数 + -c 上下文 + -m 模型 + -p 提示词
-                    // 补上 MTP draft model 路径（与 chatTest/saveBatchCmd/web 三个位置保持一致）
-                    var mtpFile = tb_mtpFile.Text.Trim();
-                    var mtpArg = !string.IsNullOrEmpty(mtpFile) && File.Exists(mtpFile)
-                        ? $" --model-draft \"{mtpFile}\""
-                        : "";
-                    var fullArgs = $"-m \"{modelPath}\"{mtpArg} {baseArgs} -c {contextSize} -p \"hello\" -n 128";
+                    var fullArgs = $"-m \"{modelPath}\" -c {contextSize} {baseArgs} -p \"hello\" -n 128";
 
                     var result = await RunSingleSpeedTestAsync(cliExe, fullArgs, contextSize, llamaPath);
                     results.Add(result);
 
                     // 内部日志记录单条结果
                     LogMessage($"✅ CTX={ctxName}: Prompt={result.PromptSpeed:F1} t/s | Generation={result.GenerationSpeed:F1} t/s");
-
-                    // 更新统计面板
-                    _statTaskCount++;
-                    _statTotalInput += contextSize;
-                    _statTotalOutput += 128; // -n 128 固定输出
-                    _statSumPromptSpeed  += result.PromptSpeed;
-                    _statSumGenSpeed     += result.GenerationSpeed;
-                    _statLastPromptSpeed  = result.PromptSpeed;
-                    _statLastGenSpeed     = result.GenerationSpeed;
-                    UpdateTokenStatusPanel();
-
-                    // 写入右上角 Token 文本框
-                    if (tb_tokens.TextLength > 0)
-                        tb_tokens.AppendText(Environment.NewLine);
-                    tb_tokens.AppendText($"CTX={ctxName}: Prompt={result.PromptSpeed:F1} t/s | Gen={result.GenerationSpeed:F1} t/s");
-                    tb_tokens.ScrollToCaret();
 
                     // 等待显存释放
                     if (currentTest < totalTests && !_stopTest)
@@ -2634,42 +2587,32 @@ namespace cn.LammaForms
         {
             var trimmed = line.Trim();
 
-            // 检测 b9601+ 结构化输出
-            // 匹配 "[ Prompt: 247.9 t/s | Generation: 53.5 t/s ]" 新格式
-            var promptMatch = System.Text.RegularExpressions.Regex.Match(
-                trimmed,
-                @"\[ Prompt:\s*([\d.]+)\s*t/s",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            if (promptMatch.Success)
+            // 检测速度信息
+            if (trimmed.Contains("t/s"))
             {
-                if (double.TryParse(promptMatch.Groups[1].Value, out var speed) && speed > 0)
-                {
-                    lastPromptSpeed = speed;
-                }
+                var promptMatch = System.Text.RegularExpressions.Regex.Match(trimmed, @"Prompt:?\s*([\d.]+)\s*t/s");
+                var genMatch = System.Text.RegularExpressions.Regex.Match(trimmed, @"Generation:?\s*([\d.]+)\s*t/s");
+                if (promptMatch.Success && double.TryParse(promptMatch.Groups[1].Value, out var p))
+                    lastPromptSpeed = p;
+                if (genMatch.Success && double.TryParse(genMatch.Groups[1].Value, out var g))
+                    lastGenSpeed = g;
             }
 
-            // 匹配 "[ Prompt: 247.9 t/s | Generation: 53.5 t/s ]" 中 Generation 部分
-            var genMatch = System.Text.RegularExpressions.Regex.Match(
-                trimmed,
-                @"\| Generation:\s*([\d.]+)\s*t/s",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            if (genMatch.Success)
+            // 检测最终结果标志
+            if (!testCompleted)
             {
-                if (double.TryParse(genMatch.Groups[1].Value, out var speed) && speed > 0)
+                var finalMatch = System.Text.RegularExpressions.Regex.Match(trimmed,
+                    @"\[?\s*Prompt:\s*[\d.]+\s*t/s\s*\|\s*Generation:\s*[\d.]+\s*t/s\s*\]?",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (finalMatch.Success)
                 {
-                    lastGenSpeed = speed;
+                    testCompleted = true;
+                    try
+                    {
+                        if (!process.HasExited) process.Kill();
+                    }
+                    catch { }
                 }
-            }
-
-            // 检测最终结果标志（两个 speed 都 > 0 时视为完成）
-            if (!testCompleted && lastPromptSpeed > 0 && lastGenSpeed > 0)
-            {
-                testCompleted = true;
-                try
-                {
-                    if (!process.HasExited) process.Kill();
-                }
-                catch { }
             }
         }
 
@@ -2680,33 +2623,25 @@ namespace cn.LammaForms
         {
             if (string.IsNullOrEmpty(result.RawOutput)) return;
 
-            var lines = result.RawOutput.Split(new char[] { '\n', (char)13 }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = result.RawOutput.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
             {
                 var trimmed = line.Trim();
 
-                var promptMatch = System.Text.RegularExpressions.Regex.Match(
-                    trimmed,
-                    @"\[ Prompt:\s*([\d.]+)\s*t/s",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                if (promptMatch.Success && result.PromptSpeed == 0)
+                if (trimmed.Contains("prompt", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (double.TryParse(promptMatch.Groups[1].Value, out var speed) && speed > 0)
-                    {
+                    var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"([\d.]+)\s*t/s",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    if (match.Success && result.PromptSpeed == 0 && double.TryParse(match.Groups[1].Value, out var speed))
                         result.PromptSpeed = speed;
-                    }
                 }
 
-                var genMatch = System.Text.RegularExpressions.Regex.Match(
-                    trimmed,
-                    @"\| Generation:\s*([\d.]+)\s*t/s",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                if (genMatch.Success && result.GenerationSpeed == 0)
+                if (trimmed.Contains("eval", StringComparison.OrdinalIgnoreCase) || trimmed.Contains("generation", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (double.TryParse(genMatch.Groups[1].Value, out var speed) && speed > 0)
-                    {
+                    var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"([\d.]+)\s*t/s",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    if (match.Success && result.GenerationSpeed == 0 && double.TryParse(match.Groups[1].Value, out var speed))
                         result.GenerationSpeed = speed;
-                    }
                 }
             }
         }
@@ -3100,13 +3035,8 @@ namespace cn.LammaForms
                     currentTest++;
                     LogMessage($"\n进度：[{currentTest}/{totalTests}] 线程数={threadCount}");
 
-                    // 补上 MTP draft model 路径（与 chatTest/saveBatchCmd/web 三个位置保持一致）
-                    var mtpFile = tb_mtpFile.Text.Trim();
-                    var mtpArg = !string.IsNullOrEmpty(mtpFile) && File.Exists(mtpFile)
-                        ? $" --model-draft \"{mtpFile}\""
-                        : "";
                     // 组装完整命令：基础参数 + -c 上下文 + -t 线程数 + -m 模型 + -p 提示词
-                    var fullArgs = $"-m \"{modelPath}\" -c {contextSize} -t {threadCount}{mtpArg} {baseArgs} -p \"hello\" -n 128";
+                    var fullArgs = $"-m \"{modelPath}\" -c {contextSize} -t {threadCount} {baseArgs} -p \"hello\" -n 128";
 
                     var result = await RunSingleSpeedTestAsync(cliExe, fullArgs, contextSize, llamaPath);
                     result.ThreadCount = threadCount;
@@ -3403,20 +3333,11 @@ namespace cn.LammaForms
             }
 
             tb_runningLogs.Clear();
-            var header = "========================================================";
-            LogMessage(header);
-            AppendRunningLog(header);
-            var startMsg = $"🚀 开始并发请求压测（{concurrency} 并发 × 1 请求）";
-            LogMessage(startMsg);
-            AppendRunningLog(startMsg);
-            var apiMsg = $"📡 API: {apiUrl}";
-            LogMessage(apiMsg);
-            AppendRunningLog(apiMsg);
-            var promptMsg = $"📝 Prompt: {prompt}";
-            LogMessage(promptMsg);
-            AppendRunningLog(promptMsg);
-            LogMessage(header);
-            AppendRunningLog(header);
+            LogMessage("========================================================");
+            LogMessage($"🚀 开始并发请求压测（{concurrency} 并发 × 1 请求）");
+            LogMessage($"📡 API: {apiUrl}");
+            LogMessage($"📝 Prompt: {prompt}");
+            LogMessage("========================================================");
 
             var apiKey = tb_apiKey.Text.Trim();
             var successCount = 0;
@@ -3472,9 +3393,7 @@ namespace cn.LammaForms
                 var results = await Task.WhenAll(tasks);
                 swTotal.Stop();
 
-                var sep = "--------------------------------------------------------";
-                LogMessage(sep);
-                AppendRunningLog(sep);
+                LogMessage("--------------------------------------------------------");
                 foreach (var (ok, tokens, elapsedMs, err) in results.Select((r, i) => (r.ok, r.tokens, r.elapsedMs, r.err)))
                 {
                     if (ok)
@@ -3483,65 +3402,28 @@ namespace cn.LammaForms
                         totalTokens += tokens;
                         totalElapsedMs += elapsedMs;
                         var tps = elapsedMs > 0 ? tokens * 1000.0 / elapsedMs : 0;
-                        var okMsg = $"  ✅ 请求成功  tokens={tokens}  用时={elapsedMs}ms  吞吐={tps:F1} t/s";
-                        LogMessage(okMsg);
-                        AppendRunningLog(okMsg);
+                        LogMessage($"  ✅ 请求成功  tokens={tokens}  用时={elapsedMs}ms  吞吐={tps:F1} t/s");
                     }
                     else
                     {
                         failCount++;
-                        var failMsg = $"  ❌ 请求失败  用时={elapsedMs}ms  错误={err}";
-                        LogMessage(failMsg);
-                        AppendRunningLog(failMsg);
+                        LogMessage($"  ❌ 请求失败  用时={elapsedMs}ms  错误={err}");
                     }
                 }
-                var summaryHeader = "========================================================";
-                LogMessage(summaryHeader);
-                AppendRunningLog(summaryHeader);
-                var summaryMsg = $"📊 汇总: 成功 {successCount}/{concurrency}  失败 {failCount}";
-                LogMessage(summaryMsg);
-                AppendRunningLog(summaryMsg);
-                var timeMsg = $"⏱️  总耗时: {swTotal.ElapsedMilliseconds}ms";
-                LogMessage(timeMsg);
-                AppendRunningLog(timeMsg);
-                var tokensMsg = $"🧮 累计生成 tokens: {totalTokens}";
-                LogMessage(tokensMsg);
-                AppendRunningLog(tokensMsg);
+                LogMessage("========================================================");
+                LogMessage($"📊 汇总: 成功 {successCount}/{concurrency}  失败 {failCount}");
+                LogMessage($"⏱️  总耗时: {swTotal.ElapsedMilliseconds}ms");
+                LogMessage($"🧮 累计生成 tokens: {totalTokens}");
                 if (successCount > 0)
                 {
                     var avgTps = totalElapsedMs > 0 ? totalTokens * 1000.0 / totalElapsedMs : 0;
-                    var speedMsg = $"🚀 平均吞吐: {avgTps:F1} t/s";
-                    LogMessage(speedMsg);
-                    AppendRunningLog(speedMsg);
+                    LogMessage($"🚀 平均吞吐: {avgTps:F1} t/s");
                 }
-                var finalSep = "========================================================";
-                LogMessage(finalSep);
-                AppendRunningLog(finalSep);
-
-                // 刷新右上角 Token 文本框（清除旧的 0 值记录，写入本次压测结果）
-                tb_tokens.Clear();
-                var concAvgTps = totalElapsedMs > 0 ? totalTokens * 1000.0 / totalElapsedMs : 0;
-                tb_tokens.AppendText($"并发压测: 成功 {successCount}/{concurrency} 请求, 累计 {totalTokens} tokens, 平均 {concAvgTps:F1} t/s");
-
-                // 刷新统计面板
-                _statTaskCount += successCount;
-                _statTotalInput += totalTokens;
-                _statTotalOutput += totalTokens;
-                if (totalElapsedMs > 0 && totalTokens > 0)
-                {
-                    var avgTps = totalTokens * 1000.0 / totalElapsedMs;
-                    _statSumPromptSpeed += avgTps;
-                    _statSumGenSpeed += avgTps;
-                    _statLastPromptSpeed = avgTps;
-                    _statLastGenSpeed = avgTps;
-                }
-                UpdateTokenStatusPanel();
+                LogMessage("========================================================");
             }
             catch (Exception ex)
             {
-                var errMsg = $"❌ 并发压测异常: {ex.Message}";
-                LogMessage(errMsg);
-                AppendRunningLog(errMsg);
+                LogMessage($"❌ 并发压测异常: {ex.Message}");
             }
         }
 
@@ -3581,20 +3463,11 @@ namespace cn.LammaForms
 
             var args = $"-m \"{modelPath}\" -p 512 -n 128";
 
-            var benchHeader = "========================================================";
-            LogMessage(benchHeader);
-            AppendRunningLog(benchHeader);
-            var benchStartMsg = "📊 llama-bench 性能基准测试";
-            LogMessage(benchStartMsg);
-            AppendRunningLog(benchStartMsg);
-            var modelMsg = $"📁 模型: {Path.GetFileName(modelPath)}";
-            LogMessage(modelMsg);
-            AppendRunningLog(modelMsg);
-            var execMsg = $"▶️  执行: \"{benchExe}\" {args}";
-            LogMessage(execMsg);
-            AppendRunningLog(execMsg);
-            LogMessage(benchHeader);
-            AppendRunningLog(benchHeader);
+            LogMessage("========================================================");
+            LogMessage("📊 llama-bench 性能基准测试");
+            LogMessage($"📁 模型: {Path.GetFileName(modelPath)}");
+            LogMessage($"▶️  执行: \"{benchExe}\" {args}");
+            LogMessage("========================================================");
 
             try
             {
@@ -3611,22 +3484,18 @@ namespace cn.LammaForms
                     WorkingDirectory = llamaPath
                 };
                 var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
-                proc.OutputDataReceived += (s, ea) => { if (!string.IsNullOrEmpty(ea.Data)) { LogMessage(ea.Data); AppendRunningLog(ea.Data); } };
-                proc.ErrorDataReceived += (s, ea) => { if (!string.IsNullOrEmpty(ea.Data)) { var line = $"[STDERR] {ea.Data}"; LogMessage(line); AppendRunningLog(line); } };
+                proc.OutputDataReceived += (s, ea) => { if (!string.IsNullOrEmpty(ea.Data)) LogMessage(ea.Data); };
+                proc.ErrorDataReceived += (s, ea) => { if (!string.IsNullOrEmpty(ea.Data)) LogMessage($"[STDERR] {ea.Data}"); };
                 proc.Start();
                 proc.BeginOutputReadLine();
                 proc.BeginErrorReadLine();
                 await proc.WaitForExitAsync();
-                var doneMsg = $"✅ llama-bench 完成，退出码: {proc.ExitCode}";
-                LogMessage(doneMsg);
-                AppendRunningLog(doneMsg);
+                LogMessage($"✅ llama-bench 完成，退出码: {proc.ExitCode}");
                 proc.Dispose();
             }
             catch (Exception ex)
             {
-                var benchErrMsg = $"❌ llama-bench 失败: {ex.Message}";
-                LogMessage(benchErrMsg);
-                AppendRunningLog(benchErrMsg);
+                LogMessage($"❌ llama-bench 失败: {ex.Message}");
             }
         }
 
@@ -3658,25 +3527,16 @@ namespace cn.LammaForms
                 try { p.Kill(); } catch { }
             }
 
-            var args = "--all";
+            var args = string.IsNullOrEmpty(modelPath) || !File.Exists(modelPath)
+                ? ""
+                : $"-m \"{modelPath}\"";
 
-            var tplHeader = "========================================================";
-            LogMessage(tplHeader);
-            AppendRunningLog(tplHeader);
-            var tplStartMsg = "🧪 llama-template-analysis 模板分析";
-            LogMessage(tplStartMsg);
-            AppendRunningLog(tplStartMsg);
+            LogMessage("========================================================");
+            LogMessage("🧪 llama-template-analysis 模板分析");
             if (!string.IsNullOrEmpty(modelPath))
-            {
-                var tplModelMsg = $"📁 模型: {Path.GetFileName(modelPath)}";
-                LogMessage(tplModelMsg);
-                AppendRunningLog(tplModelMsg);
-            }
-            var tplExecMsg = $"▶️  执行: \"{tplExe}\" {args}";
-            LogMessage(tplExecMsg);
-            AppendRunningLog(tplExecMsg);
-            LogMessage(tplHeader);
-            AppendRunningLog(tplHeader);
+                LogMessage($"📁 模型: {Path.GetFileName(modelPath)}");
+            LogMessage($"▶️  执行: \"{tplExe}\" {args}");
+            LogMessage("========================================================");
 
             try
             {
@@ -3693,22 +3553,18 @@ namespace cn.LammaForms
                     WorkingDirectory = llamaPath
                 };
                 var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
-                proc.OutputDataReceived += (s, ea) => { if (!string.IsNullOrEmpty(ea.Data)) { LogMessage(ea.Data); AppendRunningLog(ea.Data); } };
-                proc.ErrorDataReceived += (s, ea) => { if (!string.IsNullOrEmpty(ea.Data)) { var line = $"[STDERR] {ea.Data}"; LogMessage(line); AppendRunningLog(line); } };
+                proc.OutputDataReceived += (s, ea) => { if (!string.IsNullOrEmpty(ea.Data)) LogMessage(ea.Data); };
+                proc.ErrorDataReceived += (s, ea) => { if (!string.IsNullOrEmpty(ea.Data)) LogMessage($"[STDERR] {ea.Data}"); };
                 proc.Start();
                 proc.BeginOutputReadLine();
                 proc.BeginErrorReadLine();
                 await proc.WaitForExitAsync();
-                var tplDoneMsg = $"✅ llama-template-analysis 完成，退出码: {proc.ExitCode}";
-                LogMessage(tplDoneMsg);
-                AppendRunningLog(tplDoneMsg);
+                LogMessage($"✅ llama-template-analysis 完成，退出码: {proc.ExitCode}");
                 proc.Dispose();
             }
             catch (Exception ex)
             {
-                var tplErrMsg = $"❌ llama-template-analysis 失败: {ex.Message}";
-                LogMessage(tplErrMsg);
-                AppendRunningLog(tplErrMsg);
+                LogMessage($"❌ llama-template-analysis 失败: {ex.Message}");
             }
         }
 
@@ -3718,17 +3574,10 @@ namespace cn.LammaForms
         private void btn_runResults_Click(object sender, EventArgs e)
         {
             tabControl_logs.SelectedTab = tabPage_log_testLogs;
-            var resultsHeader = "========================================================";
-            LogMessage(resultsHeader);
-            AppendRunningLog(resultsHeader);
-            var resultsMsg = "📋 查看历史测试汇总报告";
-            LogMessage(resultsMsg);
-            AppendRunningLog(resultsMsg);
-            var tipMsg = "💡 请翻阅上方的「测试结果」日志中的批量测速 / 多线程 / 并发测试汇总";
-            LogMessage(tipMsg);
-            AppendRunningLog(tipMsg);
-            LogMessage(resultsHeader);
-            AppendRunningLog(resultsHeader);
+            LogMessage("========================================================");
+            LogMessage("📋 查看历史测试汇总报告");
+            LogMessage("💡 请翻阅上方的「测试结果」日志中的批量测速 / 多线程 / 并发测试汇总");
+            LogMessage("========================================================");
         }
 
         // ── 辅助函数 ───────────────────────────────────────────────────────
