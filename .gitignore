@@ -14,14 +14,21 @@ config.json
 system.json
 *.user
 
-# 编译产物统一忽略（详见 csproj OutputPath = ..\..\build-output\）
+# 编译产物统一忽略（详见 csproj OutputPath = ..\\..\\build-output\\）
 /build-output/
 
-# 版本目录（编译产出，不需要版本管理）
+# 版本目录（编译产出 + 递归匹配子目录，不需要版本管理）
 /cn.Lamma-windows*/
+**/cn.Lamma-windows*/
+
+# 用户本地参数配置 .txt 文件
+*.txt
 
 # 启动管理工具目录（编译产物备份）
 /../启动管理工具cn.Lamma-windows*/
+
+# 封面截图（替换后的新版，避免旧版冲突）
+screenshot-main.png
 
 # IDE
 .vs/
